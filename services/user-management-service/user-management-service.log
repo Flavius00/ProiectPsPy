@@ -1,0 +1,86 @@
+/Users/iosuapaul/Developer/hotel-chain-app/services/user-management-service/main.py:26: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+INFO:     Started server process [45814]
+INFO:     Waiting for application startup.
+2025-05-24 16:17:41,793 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-05-24 16:17:41,793 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("users")
+2025-05-24 16:17:41,793 INFO sqlalchemy.engine.Engine [raw sql] ()
+2025-05-24 16:17:41,793 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("users")
+2025-05-24 16:17:41,793 INFO sqlalchemy.engine.Engine [raw sql] ()
+2025-05-24 16:17:41,793 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("user_profiles")
+2025-05-24 16:17:41,793 INFO sqlalchemy.engine.Engine [raw sql] ()
+2025-05-24 16:17:41,794 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("user_profiles")
+2025-05-24 16:17:41,794 INFO sqlalchemy.engine.Engine [raw sql] ()
+2025-05-24 16:17:41,794 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("user_activities")
+2025-05-24 16:17:41,794 INFO sqlalchemy.engine.Engine [raw sql] ()
+2025-05-24 16:17:41,794 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("user_activities")
+2025-05-24 16:17:41,794 INFO sqlalchemy.engine.Engine [raw sql] ()
+2025-05-24 16:17:41,795 INFO sqlalchemy.engine.Engine 
+CREATE TABLE users (
+	id VARCHAR NOT NULL, 
+	email VARCHAR NOT NULL, 
+	username VARCHAR NOT NULL, 
+	first_name VARCHAR NOT NULL, 
+	last_name VARCHAR NOT NULL, 
+	phone_number VARCHAR, 
+	date_of_birth DATETIME, 
+	role VARCHAR NOT NULL, 
+	status VARCHAR NOT NULL, 
+	preferences JSON, 
+	created_at DATETIME, 
+	updated_at DATETIME, 
+	PRIMARY KEY (id)
+)
+
+
+2025-05-24 16:17:41,795 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2025-05-24 16:17:41,795 INFO sqlalchemy.engine.Engine CREATE UNIQUE INDEX ix_users_email ON users (email)
+2025-05-24 16:17:41,795 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2025-05-24 16:17:41,796 INFO sqlalchemy.engine.Engine CREATE UNIQUE INDEX ix_users_username ON users (username)
+2025-05-24 16:17:41,796 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2025-05-24 16:17:41,796 INFO sqlalchemy.engine.Engine CREATE INDEX ix_users_id ON users (id)
+2025-05-24 16:17:41,796 INFO sqlalchemy.engine.Engine [no key 0.00002s] ()
+2025-05-24 16:17:41,797 INFO sqlalchemy.engine.Engine 
+CREATE TABLE user_profiles (
+	user_id VARCHAR NOT NULL, 
+	avatar_url VARCHAR, 
+	bio TEXT, 
+	nationality VARCHAR, 
+	address JSON, 
+	loyalty_points INTEGER, 
+	preferred_language VARCHAR, 
+	notification_preferences JSON, 
+	created_at DATETIME, 
+	updated_at DATETIME, 
+	PRIMARY KEY (user_id)
+)
+
+
+2025-05-24 16:17:41,797 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2025-05-24 16:17:41,797 INFO sqlalchemy.engine.Engine CREATE INDEX ix_user_profiles_user_id ON user_profiles (user_id)
+2025-05-24 16:17:41,797 INFO sqlalchemy.engine.Engine [no key 0.00002s] ()
+2025-05-24 16:17:41,798 INFO sqlalchemy.engine.Engine 
+CREATE TABLE user_activities (
+	id VARCHAR NOT NULL, 
+	user_id VARCHAR NOT NULL, 
+	activity_type VARCHAR NOT NULL, 
+	description VARCHAR NOT NULL, 
+	activity_metadata JSON, 
+	timestamp DATETIME, 
+	PRIMARY KEY (id)
+)
+
+
+2025-05-24 16:17:41,798 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2025-05-24 16:17:41,798 INFO sqlalchemy.engine.Engine CREATE INDEX ix_user_activities_user_id ON user_activities (user_id)
+2025-05-24 16:17:41,798 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2025-05-24 16:17:41,799 INFO sqlalchemy.engine.Engine CREATE INDEX ix_user_activities_id ON user_activities (id)
+2025-05-24 16:17:41,799 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2025-05-24 16:17:41,800 INFO sqlalchemy.engine.Engine COMMIT
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8003 (Press CTRL+C to quit)

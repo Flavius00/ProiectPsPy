@@ -1,0 +1,297 @@
+"use client"
+
+import React, { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { useToast } from "@/components/ui/use-toast"
+import { useRouter, useSearchParams } from "next/navigation"
+import { apiClient } from "@/lib/api-client"
+import { API_ROUTES } from "@/lib/config"
+import ProtectedRoute from "@/components/protected-route"
+import { format, addDays, differenceInDays } from "date-fns"
+import { CalendarIcon } from "lucide-react"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
+import { hasRole } from "@/lib/auth"
+
+interface Room {
+    id: string
+    hotel_id: string
+    room_number: string
+    room_type: string
+    price: number
+    position: string
+    hotel_name?: string
+    is_available: boolean
+}
+
+export default function CreateReservationPage() {
+    const [room, setRoom] = useState<Room | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [checkInDate, setCheckInDate] = useState<Date | undefined>()
+    const [checkOutDate, setCheckOutDate] = useState<Date | undefined>()
+    const [totalPrice, setTotalPrice] = useState<number>(0)
+    const [clientEmail, setClientEmail] = useState<string>("")
+    const [isEmployee, setIsEmployee] = useState(false)
+    const [mounted, setMounted] = useState(false)
+    const router = useRouter()
+    const searchParams = useSearchParams()
+    const { toast } = useToast()
+    const roomId = searchParams.get("roomId")
+
+    useEffect(() => {
+        setMounted(true)
+        // Set default dates after mounting to avoid hydration mismatch
+        setCheckInDate(new Date())
+        setCheckOutDate(addDays(new Date(), 1))
+    }, [])
+
+    useEffect(() => {
+        if (!mounted) return
+
+        // Check if user is an employee
+        setIsEmployee(hasRole("EMPLOYEE"))
+
+        if (!roomId) {
+            toast({
+                title: "Error",
+                description: "Room ID is required",
+                variant: "destructive",
+            })
+            router.push("/hotels")
+            return
+        }
+
+        fetchRoomDetails()
+    }, [mounted, roomId, router, toast])
+
+    useEffect(() => {
+        if (room && checkInDate && checkOutDate) {
+            const days = differenceInDays(checkOutDate, checkInDate)
+            if (days > 0) {
+                setTotalPrice(room.price * days)
+            } else {
+                setTotalPrice(0)
+            }
+        }
+    }, [room, checkInDate, checkOutDate])
+
+    const fetchRoomDetails = async () => {
+        if (!roomId) return
+
+        setIsLoading(true)
+        try {
+            const endpoint = API_ROUTES.ROOMS.CLIENT.DETAIL(roomId)
+            const roomData = await apiClient<Room>(endpoint)
+
+            // Fetch hotel name
+            if (roomData.hotel_id) {
+                const hotelEndpoint = API_ROUTES.HOTELS.CLIENT.DETAIL(roomData.hotel_id)
+                const hotelData = await apiClient<{ name: string }>(hotelEndpoint)
+                setRoom({ ...roomData, hotel_name: hotelData.name })
+            } else {
+                setRoom(roomData)
+            }
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: error instanceof Error ? error.message : "Failed to fetch room details. Please try again.",
+                variant: "destructive",
+            })
+            router.push("/hotels")
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault()
+        if (!room || !checkInDate || !checkOutDate) return
+
+        setIsSubmitting(true)
+        try {
+            // Get the current user from localStorage or context if available
+            let userEmail = "auto@example.com";
+            let userName = "Self Booking";
+
+            // Try to get user info from localStorage
+            if (mounted && typeof window !== 'undefined') {
+                const userJson = localStorage.getItem('user');
+                if (userJson) {
+                    try {
+                        const user = JSON.parse(userJson);
+                        userEmail = user.email || userEmail;
+                        userName = user.username || userName;
+                    } catch (e) {
+                        console.error("Failed to parse user from localStorage:", e);
+                    }
+                }
+            }
+
+            const reservationData = isEmployee
+                ? {
+                    room_id: room.id,
+                    check_in_date: format(checkInDate, "yyyy-MM-dd'T'14:00:00"),
+                    check_out_date: format(checkOutDate, "yyyy-MM-dd'T'12:00:00"),
+                    client_email: clientEmail,
+                    client_name: clientEmail.split('@')[0], // Using part of email as name for employee-created reservations
+                }
+                : {
+                    room_id: room.id,
+                    check_in_date: format(checkInDate, "yyyy-MM-dd'T'14:00:00"),
+                    check_out_date: format(checkOutDate, "yyyy-MM-dd'T'12:00:00"),
+                    client_name: userName,
+                    client_email: userEmail,
+                }
+
+            const endpoint = isEmployee
+                ? API_ROUTES.RESERVATIONS.EMPLOYEE.CREATE
+                : API_ROUTES.RESERVATIONS.CLIENT.CREATE
+
+            await apiClient(endpoint, {
+                method: "POST",
+                body: JSON.stringify(reservationData),
+                requireAuth: true,
+            })
+
+            toast({
+                title: "Reservation created",
+                description: "Your reservation has been created successfully.",
+            })
+
+            router.push("/reservations")
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: error instanceof Error ? error.message : "Failed to create reservation. Please try again.",
+                variant: "destructive",
+            })
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    return (
+        <ProtectedRoute>
+            <div className="max-w-2xl mx-auto">
+                <div className="mb-6">
+                    <h1 className="text-2xl font-bold">Create Reservation</h1>
+                    <p className="text-muted-foreground">Book your stay</p>
+                </div>
+
+                {isLoading ? (
+                    <div className="flex justify-center items-center h-64">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                    </div>
+                ) : room ? (
+                    <form onSubmit={handleSubmit}>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>{room.room_type}</CardTitle>
+                                <CardDescription>{room.hotel_name}</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {isEmployee && (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="clientEmail">Client Email</Label>
+                                        <Input
+                                            id="clientEmail"
+                                            value={clientEmail}
+                                            onChange={(e) => setClientEmail(e.target.value)}
+                                            required={isEmployee}
+                                            placeholder="Enter client email address"
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Check-in Date</Label>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    className={cn(
+                                                        "w-full justify-start text-left font-normal",
+                                                        !checkInDate && "text-muted-foreground",
+                                                    )}
+                                                >
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {checkInDate ? format(checkInDate, "PPP") : <span>Pick a date</span>}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={checkInDate}
+                                                    onSelect={setCheckInDate}
+                                                    initialFocus
+                                                    disabled={(date) => date < new Date()}
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Check-out Date</Label>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    className={cn(
+                                                        "w-full justify-start text-left font-normal",
+                                                        !checkOutDate && "text-muted-foreground",
+                                                    )}
+                                                >
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {checkOutDate ? format(checkOutDate, "PPP") : <span>Pick a date</span>}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={checkOutDate}
+                                                    onSelect={setCheckOutDate}
+                                                    initialFocus
+                                                    disabled={(date) => !checkInDate || date <= checkInDate}
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Room Price</Label>
+                                    <Input value={`$${room.price.toFixed(2)} per night`} disabled />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Total Price</Label>
+                                    <Input value={`$${totalPrice.toFixed(2)}`} disabled />
+                                </div>
+                            </CardContent>
+                            <CardFooter className="flex justify-between">
+                                <Button variant="outline" type="button" onClick={() => router.back()}>
+                                    Cancel
+                                </Button>
+                                <Button type="submit" disabled={isSubmitting || totalPrice <= 0 || (isEmployee && !clientEmail)}>
+                                    {isSubmitting ? "Creating..." : "Confirm Reservation"}
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    </form>
+                ) : (
+                    <div className="text-center py-12">
+                        <p className="text-muted-foreground">Room not found.</p>
+                        <Button variant="outline" className="mt-4" onClick={() => router.push("/hotels")}>
+                            Back to Hotels
+                        </Button>
+                    </div>
+                )}
+            </div>
+        </ProtectedRoute>
+    )
+}

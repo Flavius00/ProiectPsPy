@@ -1,0 +1,128 @@
+/Users/iosuapaul/Developer/hotel-chain-app/services/hotel-service/main.py:36: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+INFO:     Started server process [45805]
+INFO:     Waiting for application startup.
+2025-05-24 16:17:39,780 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-05-24 16:17:39,780 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("hotels")
+2025-05-24 16:17:39,780 INFO sqlalchemy.engine.Engine [raw sql] ()
+2025-05-24 16:17:39,781 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("hotels")
+2025-05-24 16:17:39,781 INFO sqlalchemy.engine.Engine [raw sql] ()
+2025-05-24 16:17:39,781 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("rooms")
+2025-05-24 16:17:39,781 INFO sqlalchemy.engine.Engine [raw sql] ()
+2025-05-24 16:17:39,781 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("rooms")
+2025-05-24 16:17:39,781 INFO sqlalchemy.engine.Engine [raw sql] ()
+2025-05-24 16:17:39,781 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("room_images")
+2025-05-24 16:17:39,781 INFO sqlalchemy.engine.Engine [raw sql] ()
+2025-05-24 16:17:39,781 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("room_images")
+2025-05-24 16:17:39,781 INFO sqlalchemy.engine.Engine [raw sql] ()
+2025-05-24 16:17:39,782 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("reviews")
+2025-05-24 16:17:39,782 INFO sqlalchemy.engine.Engine [raw sql] ()
+2025-05-24 16:17:39,782 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("reviews")
+2025-05-24 16:17:39,782 INFO sqlalchemy.engine.Engine [raw sql] ()
+2025-05-24 16:17:39,782 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("reservations")
+2025-05-24 16:17:39,782 INFO sqlalchemy.engine.Engine [raw sql] ()
+2025-05-24 16:17:39,782 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("reservations")
+2025-05-24 16:17:39,782 INFO sqlalchemy.engine.Engine [raw sql] ()
+2025-05-24 16:17:39,783 INFO sqlalchemy.engine.Engine 
+CREATE TABLE hotels (
+	id VARCHAR NOT NULL, 
+	name VARCHAR NOT NULL, 
+	location VARCHAR NOT NULL, 
+	address VARCHAR NOT NULL, 
+	description TEXT, 
+	amenities TEXT, 
+	created_at DATETIME, 
+	updated_at DATETIME, 
+	PRIMARY KEY (id)
+)
+
+
+2025-05-24 16:17:39,783 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2025-05-24 16:17:39,784 INFO sqlalchemy.engine.Engine CREATE INDEX ix_hotels_name ON hotels (name)
+2025-05-24 16:17:39,784 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2025-05-24 16:17:39,784 INFO sqlalchemy.engine.Engine CREATE INDEX ix_hotels_id ON hotels (id)
+2025-05-24 16:17:39,784 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2025-05-24 16:17:39,785 INFO sqlalchemy.engine.Engine 
+CREATE TABLE rooms (
+	id VARCHAR NOT NULL, 
+	hotel_id VARCHAR NOT NULL, 
+	room_number VARCHAR NOT NULL, 
+	room_type VARCHAR NOT NULL, 
+	price FLOAT NOT NULL, 
+	position VARCHAR, 
+	facilities TEXT, 
+	is_available BOOLEAN, 
+	created_at DATETIME, 
+	updated_at DATETIME, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(hotel_id) REFERENCES hotels (id)
+)
+
+
+2025-05-24 16:17:39,785 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2025-05-24 16:17:39,786 INFO sqlalchemy.engine.Engine CREATE INDEX ix_rooms_id ON rooms (id)
+2025-05-24 16:17:39,786 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2025-05-24 16:17:39,786 INFO sqlalchemy.engine.Engine 
+CREATE TABLE room_images (
+	id VARCHAR NOT NULL, 
+	room_id VARCHAR NOT NULL, 
+	image_url VARCHAR NOT NULL, 
+	alt_text VARCHAR, 
+	display_order INTEGER, 
+	created_at DATETIME, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(room_id) REFERENCES rooms (id)
+)
+
+
+2025-05-24 16:17:39,786 INFO sqlalchemy.engine.Engine [no key 0.00002s] ()
+2025-05-24 16:17:39,786 INFO sqlalchemy.engine.Engine CREATE INDEX ix_room_images_id ON room_images (id)
+2025-05-24 16:17:39,787 INFO sqlalchemy.engine.Engine [no key 0.00002s] ()
+2025-05-24 16:17:39,787 INFO sqlalchemy.engine.Engine 
+CREATE TABLE reviews (
+	id VARCHAR NOT NULL, 
+	room_id VARCHAR NOT NULL, 
+	user_id VARCHAR NOT NULL, 
+	rating INTEGER NOT NULL, 
+	comment TEXT NOT NULL, 
+	created_at DATETIME, 
+	updated_at DATETIME, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(room_id) REFERENCES rooms (id)
+)
+
+
+2025-05-24 16:17:39,787 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2025-05-24 16:17:39,788 INFO sqlalchemy.engine.Engine CREATE INDEX ix_reviews_id ON reviews (id)
+2025-05-24 16:17:39,788 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2025-05-24 16:17:39,788 INFO sqlalchemy.engine.Engine 
+CREATE TABLE reservations (
+	id VARCHAR NOT NULL, 
+	room_id VARCHAR NOT NULL, 
+	client_id VARCHAR NOT NULL, 
+	client_email VARCHAR NOT NULL, 
+	client_name VARCHAR NOT NULL, 
+	employee_id VARCHAR, 
+	check_in_date DATE NOT NULL, 
+	check_out_date DATE NOT NULL, 
+	total_price FLOAT NOT NULL, 
+	status VARCHAR NOT NULL, 
+	notes TEXT, 
+	created_at DATETIME, 
+	updated_at DATETIME, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(room_id) REFERENCES rooms (id)
+)
+
+
+2025-05-24 16:17:39,788 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2025-05-24 16:17:39,789 INFO sqlalchemy.engine.Engine CREATE INDEX ix_reservations_id ON reservations (id)
+2025-05-24 16:17:39,789 INFO sqlalchemy.engine.Engine [no key 0.00002s] ()
+2025-05-24 16:17:39,789 INFO sqlalchemy.engine.Engine COMMIT
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8002 (Press CTRL+C to quit)

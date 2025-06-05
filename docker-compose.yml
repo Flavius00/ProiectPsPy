@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  # Authentication Service
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: hotel-auth-service
+    ports:
+      - "8001:8001"
+    environment:
+      - JWT_SECRET_KEY=your-secret-key-here
+      - DATABASE_URL=sqlite:///./data/auth_service.db
+    volumes:
+      - ./data/auth:/app/data
+    networks:
+      - hotel-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8001/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # Hotel Service
+  hotel-service:
+    build:
+      context: ./services/hotel-service
+      dockerfile: Dockerfile
+    container_name: hotel-service
+    ports:
+      - "8002:8002"
+    environment:
+      - JWT_SECRET_KEY=your-secret-key-here
+      - DATABASE_URL=sqlite:///./data/hotel_service.db
+    volumes:
+      - ./data/hotel:/app/data
+    networks:
+      - hotel-network
+    depends_on:
+      auth-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8002/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # User Management Service
+  user-management-service:
+    build:
+      context: ./services/user-management-service
+      dockerfile: Dockerfile
+    container_name: hotel-user-management-service
+    ports:
+      - "8003:8003"
+    environment:
+      - JWT_SECRET_KEY=your-secret-key-here
+      - DATABASE_URL=sqlite:///./data/user_management_service.db
+    volumes:
+      - ./data/user-management:/app/data
+    networks:
+      - hotel-network
+    depends_on:
+      auth-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8003/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+networks:
+  hotel-network:
+    driver: bridge
+    name: hotel-chain-network
+
+volumes:
+  auth-data:
+    driver: local
+  hotel-data:
+    driver: local
+  user-management-data:
+    driver: local
